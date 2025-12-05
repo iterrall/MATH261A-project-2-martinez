@@ -1,236 +1,118 @@
 ---
-title: "HW6 (2025-11-19), Math 261A, Isis Martinez, ID 018233605"
-output: 
-  pdf_document:
-    latex_engine: xelatex
-    
+title: "The Impact of Immigrationon Economic Growth in OECD Countries"
+subtitle: "SUBTITLE"
+author: "Isis Martinez"
+thanks: "Project repository available at: [https://github.com/iterrall/MATH261A-project-2-martinez](https://github.com/iterrall/MATH261A-project-2-martinez)."
+date: today
+date-format: long
+format:
+  pdf:
+    number-sections: true
+execute:
+  echo: false
+  warning: false
+  message: false
+  include: true
+  fig-width: 4    # default width (in inches)
+  fig-height: 3   # default height (in inches)
+abstract: "ABSTRACT HERE"
+bibliography: references.bib
+body-footer: Math 261A - Regression Theory and Methods | Fall 2025 Project 2
 ---
 
-**Problem 1:**
 
-```{r, echo=FALSE, results='markup', message=FALSE, warning=FALSE}
-library(tidyverse)
-tornadoes <- readr::read_csv(paste0('https://raw.githubusercontent.com/',
-'rfordatascience/tidytuesday/main/',
-'data/2023/2023-05-16/tornados.csv')) |>
-filter(yr >= 2007, !is.na(loss))
-```
 
-**Problem 1a**: A tornado's Enhanced Fujita rating is a set of wind estimates determined by estimating wind speeds and expected related damage. It is inferred from damage assessments calibrated to expected wind speeds (not measured directly by instruments). This is found by surveying tornado-related damage and comparing it to a list of Damage Indicators (DIs/28 types of structures or vegetation that could be damaged) and Degrees of Damage (DoD). Each level corresponds to an estimated range of wind speeds to assign a range of wind speeds the tornado likely produced and the rating from EF0 to EF5 follows:
 
-Here is the EF scale as stated by the [National Weather Service website](https://www.weather.gov/oun/efscale):
-**EF Rating	3 Second Gust (mph)**:
 
-0	65-85
 
-1	86-110
+## PROPOSAL WORK
 
-2	111-135
+## Research Question
 
-3	136-165
+This research seeks to quantify the relationship between international migration and economic performance, controlling for key macroeconomic indicators. Understanding this relationship is relevant as OECD nations face labor shortages, demographic shifts, and policy debates about the economic consequences of immigration. Therefore, we investigate the following question: **How do immigration increases impact GDP per capita across OECD countries, and over what time period do these effects occur?**
 
-4	166-200
+## Data
 
-5	Over 200
+In this project, the primary data sources are as follows:
 
+* **Organisation for Economic Co-operation and Development (OECD) International Migration Database** found [here][https://www.oecd.org/en/data/datasets/oecd-databases-on-migration.html], which shows immigration in and outflows and net migration)
 
-**Problem 1b**:
-We fit a simple linear regression model 
-$loss_i = \beta_0 + \beta_1mag_i + \varepsilon_i$ where loss is the estimated property loss in dollars from a tornado, and mag is the tornado's EF rating.
+* **OECD GDP and Non-Financial Accounts** found [here][https://www.oecd.org/en/data/datasets/gdp-and-non-financial-accounts.html], shows GDP per capita and macro controls for countries.
 
-```{r, echo=TRUE, results='markup', message=FALSE, warning=FALSE}
-lm_fit <- lm(data=tornadoes, loss ~ mag)
-summary(lm_fit)
-slope <- coef(lm_fit)["mag"]
+I will use country–year pairs for OECD members (target: 2000–2022) for **Observational units**, and the **key variables** will be as follows:
 
-```
-The slope parameter $\beta_1$ is the estimated change in change in USD property loss for every 1-unit increase in the tornado’s EF rating. As we see from the summary above, the slope of this model is \$ `r round(slope, 3)`.
+* **Response variable:** GDP per capita (in constant 2020 PPP-adjusted dollars). I will also analyze the natural logarithm of GDP per capita, $\log(\text{GDPpc})$, which allows us to interpret results in terms of *elasticities*—that is, approximate percentage changes in GDP per capita for a one-unit change in the predictor.  
+* **Main predictors:** immigration inflow rate (per 1,000 population) at years $t$, $t-1$, and $t-2$, to capture both immediate and delayed effects.  
+* **Controls** $(\mathbf{X}_{it})$: unemployment rate, investment rate (gross fixed capital formation as % of GDP), tertiary education attainment, labor force participation rate, population growth, consumer price inflation, and government consumption as % of GDP.
 
-**Problem 1c**: We fit a  log linear regression model $log(loss_i) = \beta_0 + \beta_1mag_i + \varepsilon_i$:
+## Model
 
-```{r, echo=TRUE, results='markup', message=FALSE, warning=FALSE}
+To analyze the relationship between immigration and GDP, I will estimate a **panel regression model with country and year fixed effects**.  
 
-log_fit <- lm(data=tornadoes, log(loss) ~ mag)
-summary(log_fit)
-log_slope <- coef(log_fit)["mag"]
+A *panel dataset* combines both cross-sectional (across countries) and time-series (across years) variation. The model can be written as:
 
-```
+$$
+\log(\text{GDPpc}_{it}) =
+\beta_0 +
+\sum_{k=0}^{2} \beta_k \text{ImmigrationRate}_{i,t-k} +
+\mathbf{X}'_{it}\boldsymbol{\gamma} +
+\alpha_i + \delta_t + \varepsilon_{it}
+$$
 
-The estimated slope parameter is $b_1 \approx$ `r round(log_slope, 3)`, which means every 1 unit change in a tornado's EF score corresponds to an expected average difference of log(loss) in damage in USD. 
+where:
+* $i$ indexes countries and $t$ indexes years,  
+* $\alpha_i$ are **country fixed effects (FE)**, which control for all unobserved, time-invariant characteristics of each country (such as geography, institutions, or cultural norms),  
+* $\delta_t$ are **year fixed effects**, which control for global events that affect all countries in a given year (for example, recessions, oil price shocks, or COVID-19),  
+* $\varepsilon_{it}$ is the error term. 
 
-In other words, the expected property loss in US dollars changes by approximately $100 \times (e^{b_1} - 1) =$ `r round(100 * (exp(log_slope) - 1), 1)`% since $e^{x_i} \approx 1+x_i$.
+This “two-way fixed effects” approach isolates **within-country changes over time**, rather than differences between countries, improving causal interpretation.  
 
-The slope from part (b) represented a change in dollars of damage, while this logarithmic model 's slope corresponds to approximate proportional differences represents.
+Taking the logarithm of GDP per capita stabilizes variance (reduces *heteroskedasticity*) and allows the coefficients $(\beta)$ to be interpreted as approximate percentage changes in GDP per capita.
 
-The log transformation normalizes the loss distributions and makes the relationship more linear, so the log-linear model is preferred.
+## Proposed Extension (Beyond Simple Linear Regression)
 
+1.  **Distributed Lag Specification:** Include 0–2 year lags of immigration inflows to capture delayed macro effects; compute the **long-run cumulative effect** $\sum_{k=0}\^2 \beta_k$ with standard errors (delta method).\
+2.  **Two-Way Fixed Effects:** Control for unobserved country traits and global shocks.\
+3.  **Model Comparison:** OLS vs. FE; FE with (p=0) vs. FE with (p=2) lags; selection via AIC/BIC and out-of-sample fit.\
+4.  **Robustness check if possible:**
+    * Add a **lagged dependent variable** and note the bias it induces\
+    * Clustered standard errors at the country level; test serial correlation in panels.
 
+## Analysis Plan
 
-**Problem 2**: The below code simulates training and testing data for two variables X and Y from the model $Y= 2X + \varepsilon$, where $\varepsilon$ is not constant. In particular, the standard deviation of the errors $\varepsilon$ is dependent on $X$, and is equal to $1 + x^2/2$. The code below also provides examples of how to fit the linear regression model $Y\sim X$ using ordinary least squares and weighted least squares.
+1. **Estimation and Inference**  
+   - Fit multiple FE models with different lag structures and report coefficient estimates (\(\beta_k\)).  
+   - Plot **impulse profiles** showing how immigration affects GDP per capita over subsequent years.  
+   - Check for **multicollinearity** among predictors using the Variance Inflation Factor (VIF).  
+   - Use residual plots and heteroskedasticity tests to assess model assumptions.
 
+2. **Hypothesis Tests**
+   - **Short-run effect:** \(H_0: \beta_0 = 0\) vs. \(H_A: \beta_0 \neq 0\).  
+   - **Lagged effects:** \(H_0: \beta_1=\beta_2=0\) (joint Wald test).  
+   - **Cumulative long-run effect:** \(H_0: \beta_0+\beta_1+\beta_2=0\) (linear hypothesis test with clustered standard errors).
 
-**Problem 2a**: First, show that if $E(Y) = X\beta$, the weighted least squares estimator is unbiased.
+3. **Model Validation and Fit**
+   - Compare models using AIC and BIC values to balance model complexity and fit.  
+   - Evaluate predictive accuracy using **blocked k-fold cross-validation**, which divides the data by countries (to preserve the panel structure).  
+   - Compute **Root Mean Squared Error (RMSE)** and **Mean Absolute Error (MAE)**—metrics that summarize how far predicted values deviate from actual GDP per capita. Lower RMSE and MAE indicate better model fit.
 
-We know that the weighted least squares is $\hat{\beta}_{WLS}=(X^TWX)^{-1}X^TWy$, where W is a W is a symmetric positive-definite weight matrix. We know it's unbiased if $E(\hat{\beta}_{OLS})=\beta$. Therefore, we compute the following:
+4. **Interpretation of Results**
+   - Report coefficients as elasticities: for example, a coefficient of 0.02 on immigration rate means that a one-unit increase in immigration rate (per 1,000 people) is associated with a 2% increase in GDP per capita, holding other factors constant.  
+   - Discuss the timing of effects: whether impacts appear immediately, after one year, or over multiple years.
 
-$E[\hat{\beta}_{WLS}]=E[(X^TWX)^{-1}X^TWY] = (X^TWX)^{-1}X^TWE[Y]=(X^TWX)^{-1}X^TWX\beta]$
 
-Since $(X^TWX)^{-1}$ is the inverse of $X^TWX$ with W being symmetric, we therefore can conclude $E[\hat{\beta}_{WLS}]=(X^TWX)^{-1}X^TWX\beta]=\beta$. So, we know that $\hat{\beta}_{WLS}$ is unbiased.
+I plan to share the following **deliverables** in this project:
 
+* Regression tables with coefficients and confidence intervals  
+* A figure showing the time path of immigration’s estimated impact  
+* Model comparison table (AIC, BIC, RMSE, MAE) 
 
-**Problem 2b**
-Use the below code as a starting point for a simulation study that shows that the weighted least squares estimator $\hat{\beta}^{WLS}_1$ is more efficient than the OLS estimator (meaning that $SE(\hat{\beta}^{WLS}_1)$ is less than $SE(\hat{\beta}^{OLS}_1)$).
+Finally, I plan to use the following **software:** R for model estimation and validation; Python (`pandas`, `numpy`) may be used for data cleaning and preprocessing.
 
-```{r, echo=TRUE, results='markup', message=FALSE, warning=FALSE}
-set.seed(123)
-n <- 50
 
-sims <-500
-# containers
-b1_ols  <- numeric(sims)
-b1_wls  <- numeric(sims)
-se1_ols <- numeric(sims)
-se1_wls <- numeric(sims)
+# References
 
-for (s in 1:sims) {
-  #train and test
-  X_train <- runif(n, min = -5, max = 5)
-  X_test <- runif(n, min = -5, max = 5)
+::: {#refs}
+:::
 
-  Y_train <- 2 * X_train + rnorm(n, 0, sd = 1 + X_train ^ 2 / 2)
-  Y_test <- 2 * X_train + rnorm(n, 0, sd = 1 + X_train ^ 2 / 2)
-  
-  # fit models
-  fit_ols = lm(Y_train ~ X_train)
-  fit_wls = lm(Y_train ~ X_train, weights = 1/(1 + 0.5 * X_train^2) ^ 2)
-  
-  b1_ols[s]  <- coef(fit_ols)[2]
-  b1_wls[s]  <- coef(fit_wls)[2]
-  se1_ols[s] <- summary(fit_ols)$coef[2, 2]
-  se1_wls[s] <- summary(fit_wls)$coef[2, 2]
-}
 
-#sampling SDs of slope estimates
-samp_sd_ols <- sd(b1_ols)
-samp_sd_wls <- sd(b1_wls)
-
-# avg model-reported SEs for the slope
-avg_se_ols <- mean(se1_ols)
-avg_se_wls <- mean(se1_wls)
-
-#relative efficiency (if number >1, WLS more efficient)
-rel_eff <- (samp_sd_ols^2) / (samp_sd_wls^2)
-
-cat(sprintf("Observed SD of slope (OLS): %.4f\n", samp_sd_ols))
-cat(sprintf("Observed SD of slope (WLS): %.4f\n", samp_sd_wls))
-cat(sprintf("Relative efficiency Var(OLS)/Var(WLS): %.2f\n\n", rel_eff))
-cat(sprintf("Average reported SE (OLS): %.4f\n", avg_se_ols))
-cat(sprintf("Average reported SE (WLS): %.4f\n", avg_se_wls))
-
-```
-The observed standard deviation of the OLS estimates across all simulations is 0.4356. It measures how much the OLS slope estimate varies between samples. 
-
-The observed standard deviation of the OLS estimates across all simulations is 0.2699, which is less than 0.4356. This means the WLS estimates with less variability across repeated samples. Therefore, we see that the WLS slope estimates are less noisy/more stable than the OLS estimates, which is a sign of higher efficiency.
-
-We also measured the observed relative efficiency Var(OLS)/Var(WLS), which was 2.60. If $0> efficiency < 1$, then that would indicate $SE(\hat{\beta}^{WLS}_1) >SE(\hat{\beta}^{OLS}_1)$. However, since this value is greater than 1, we know that $SE(\hat{\beta}^{WLS}_1)$ is less than $SE(\hat{\beta}^{OLS}_1)$, and therefore the WLS estimator is more efficient.
-
-**Problem 2c**: Use the below code as a starting point for a simulation study that compares the mean squared prediction error of the OLS and WLS estimators. Which estimator yields the better test MSE, on average?
-
-```{r, echo=TRUE, results='markup', message=FALSE, warning=FALSE}
-set.seed(123)
-n <- 50
-
-sims <-500
-# containers
-mse_ols <- numeric(sims)
-mse_wls <- numeric(sims)
-
-for (s in 1:sims) {
-  #train and test
-  X_train <- runif(n, min = -5, max = 5)
-  X_test <- runif(n, min = -5, max = 5)
-
-  Y_train <- 2 * X_train + rnorm(n, 0, sd = 1 + X_train ^ 2 / 2)
-  Y_test <- 2 * X_train + rnorm(n, 0, sd = 1 + X_train ^ 2 / 2)
-  
-  # fit models
-  fit_ols = lm(Y_train ~ X_train)
-  fit_wls = lm(Y_train ~ X_train, weights = 1/(1 + 0.5 * X_train^2) ^ 2)
-  
-  # predictions on the test X's
-  yhat_ols <- predict(fit_ols, newdata = data.frame(X_train = X_test))
-  yhat_wls <- predict(fit_wls, newdata = data.frame(X_train = X_test))
-
-  # test MSEs
-  mse_ols[s] <- mean((Y_test - yhat_ols)^2)
-  mse_wls[s] <- mean((Y_test - yhat_wls)^2)
-}
-
-avg_mse_ols <- mean(mse_ols)
-avg_mse_wls <- mean(mse_wls)
-sd_mse_ols  <- sd(mse_ols)
-sd_mse_wls  <- sd(mse_wls)
-
-#relative efficiency (if number >1, WLS more efficient)
-rel_eff <- (samp_sd_ols^2) / (samp_sd_wls^2)
-
-cat(sprintf("Average test MSE (OLS): %.4f  (SD across sims: %.4f)\n", avg_mse_ols, sd_mse_ols))
-cat(sprintf("Average test MSE (WLS): %.4f  (SD across sims: %.4f)\n", avg_mse_wls, sd_mse_wls))
-cat(sprintf("Average difference (OLS - WLS): %.4f\n", mean(mse_ols - mse_wls)))
-
-
-```
-We see that the WLS has a slightly smaller average test MSE, and the WLS test errors vary a bit less from run to run than the OLS test errors.
-
-Both methods perform similarly in terms of prediction error, since the mean test MSEs are very close (108.2 vs. 107.3). That's expected, because both models are correctly specified since they estimate the same true mean function $E[Y\mid X]=2X$. WLS performs slightly better on average with the difference being $\approx 0.94$. It is small but consistent with the what we would expect that when heteroskedasticity is present and weights correctly reflect the inverse of the error variance, WLS produces slightly more precise coefficient estimates. Meaning overall, on average, WLS achieves slightly lower and more consistent test MSE, reflecting its ability to account for non-constant error variance.
-
-
-**Problem 3a**:
-29 independent analysis teams with total 61 analysts explored the same research question with the same dataset: are soccer referees more likely to give red cards to dark-skin-toned players than to light-skin-toned players?
-
-The dataset and question were fixed, but the analytic path was open since each team could make its own decisions about data cleaning, the covariates to include, model specification, exclusions, etc. 
-
-The authors found effect estimates ranged from 0.89 to 2.93. 20 out of the 29 researchers ($\approx 69%$) of teams found a statistically significant positive effect (dark-skin-toned players more likely penalized), while the other 9 ($\approx 31%$) did not. The analyses used 21 unique combinations of covariates across the 29 teams showing differences in analytic approaches. 
-
-The study shows that analytic choices can produce differing results, even with identical data. The authors recommend greater transparency, reporting of analytic decisions, and multi-analyst or multiple approaches to show how robust findings actually are.
-
-**Problem 3b**. We look at the research question given: Are soccer referees more likely to give red cards to players with darker skin tones, after accounting for game context and player characteristics?
-
-The dataset records the **number of red cards** per player across matches.
-
-Here are the details of the proposed model:
-
-* **Response variable**:  Y = number_of_red_cards. This variable can be aggregated per player or per match. Red cards are non-negative integers, a Poisson or log-linear model is could work.
-
-* **Predictor variables**: 
-
-  - skin_tone (categorical: dark vs. light) - primary variable of interest
-  - position (categorical: defender, midfielder, forward) - controls for differing defensive risk
-  - fouls_committed (numeric) - proxies player aggression
-  - minutes_played (numeric) - exposure variable; included as offset
-  - team_strength or opponent_strength (numeric or categorical) - contextual control
-  - referee_id or league (random or fixed effects) - accounts for variation among referees/leagues
-    
-**Proposed model**: A mixed logistic-linear model:
-
-$$\log(E[Y_i]) = \beta_0 + \beta_1 (SkinTone_i) + \beta_2 (position_i) + \beta_3 (FoulsCommitted_i) + \beta_4 (TeamStrength_i) + \log(MinutesPlayed_i)$$
-where the offset term adjusts for different exposure times (minutes played).
-
-
-Reasoning:
-
-* The log-linear model could be appropriate because the number of red cards discrete data that typically follows a a Poisson-like distribution.
-* Including minutes played as an control helps make sure players with more playing time are appropriately accounted for.
-* Covariates like position, fouls committed, and team strength control for performance and context differences unrelated to referee bias.
-* The coefficient for skin_tone quantifies whether darker-skinned players receive unbalanced number of red cards.
-
-Example code for implementation after loading libraries and dataset:
-
-Fit log-linear (Poisson) regression
-model <- glm(
-  red_cards ~ skin_tone + position + fouls_committed + team_strength + offset(log(minutes_played)),
-  data = data,
-  family = poisson(link = "log"))
-summary(model)
-
-Interpretation: A positive coefficient for skin_tone (dark) would suggest that dark-skin-toned players are more likely to receive red cards, controlling for other factors if it is deemed to be significant. The exponentiated coefficients (using exp(coef(model))) provide rate ratios, which is the proportional change in expected red-card count per predictor unit.
